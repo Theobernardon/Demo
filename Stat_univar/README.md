@@ -26,8 +26,6 @@ fig = stat_univariee(df.loc[:, ['age', 'fare', 'embark_town']])
 fig
 ```
 
-{% include Figure_analyse_univariées_de_age_a_embark_town_par_sex.html %}
-
 ```python
 # Création d'une instance de stat_univariee par catégorie 'sex'
 fig = stat_univariee(df.loc[:, ['age', 'fare', 'embark_town']], hue=df['sex'])
@@ -50,7 +48,6 @@ fig
 # Sauvegarde de la figure sous un fichier HTML
 fig.save_html()
 ```
-[Ouvrir le fichier HTML sauvegardée lors de la démo](Figure_analyse_univariées_de_age_a_embark_town_par_sex.html)
 
 **Personnalisation de l'analyse univariée**
 -----------------------------------------
