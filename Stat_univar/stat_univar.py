@@ -579,7 +579,7 @@ class AbstractHtmlReprPourFigure(ABC):
     
 class stat_univariee(AbstractHtmlReprPourFigure):
     
-    def __init__(self, datafram, hue=None, log_scale=None, hist_bins=30, figsize="auto", 
+    def __init__(self, datafram, hue=None, hist_bins=30, figsize="auto", 
                  lorenz=True, lorenz_xticks=[], lorenz_yticks=[], text_frontsize=12, 
                  stat_centrales_lines=True, nombre_modes_max=2, ratio_boxplot=1, title="",  
                  rotation_label=35, secure=True, dropna_lorentz=True, fillna_lorentz=0):
@@ -592,8 +592,6 @@ class stat_univariee(AbstractHtmlReprPourFigure):
             Le datafram ou une série pandas. Si df, toutes les colonnes seront traitées.
         hue : pd.Series, optional
             Série de catégorie. Defaults to None.
-        log_scale : bool or int, optional
-            échelle logarithmique pour le kdeplot et l'histplot. Defaults to None.
         hist_bins : int, optional
             nombre de séparateurs sur l'histogramme. Defaults to 30.
         figsize : str, optional
@@ -640,7 +638,7 @@ class stat_univariee(AbstractHtmlReprPourFigure):
         self.title_textsize_factor=1.2
         self.ticks_textsize_factor=0.7
         
-        AbstractHtmlReprPourFigure.__init__(self, datafram, hue, log_scale, hist_bins, figsize, 
+        AbstractHtmlReprPourFigure.__init__(self, datafram, hue, hist_bins, figsize, 
                                             lorenz, lorenz_xticks, lorenz_yticks, text_frontsize, 
                                             stat_centrales_lines, nombre_modes_max, ratio_boxplot, 
                                             title,  rotation_label, dropna_lorentz, fillna_lorentz)
@@ -776,7 +774,7 @@ class stat_univariee(AbstractHtmlReprPourFigure):
                 ax.legend(handles, labels, title="", prop={'size': text_frontsize * self.legend_textsize_factor})
         return ax
 
-    def _edit_figure(self, serie, hue, log_scale, hist_bins, figsize, 
+    def _edit_figure(self, serie, hue, hist_bins, figsize, 
                      lorenz, lorenz_xticks, lorenz_yticks, text_frontsize, 
                      stat_centrales_lines, nombre_modes_max, ratio_boxplot, 
                      title, rotation_label, dropna_lorentz, fillna_lorentz):
@@ -885,7 +883,7 @@ class stat_univariee(AbstractHtmlReprPourFigure):
             
             ## Courbe de frequences et son texte ##
             # Courbe
-            sns.kdeplot(ax=ax_frec, x=serie, hue=hue, fill=True, alpha=.5, log_scale=log_scale, palette=palette)
+            sns.kdeplot(ax=ax_frec, x=serie, hue=hue, fill=True, alpha=.5, palette=palette)
             ax_frec.set_title("Densité", fontdict=dict(size=text_frontsize*self.title_textsize_factor))
             ax_frec.set_ylabel("")
             ax_frec.set_xlabel("")
@@ -973,7 +971,7 @@ class stat_univariee(AbstractHtmlReprPourFigure):
                 ax_frec.legend(prop={'size': text_frontsize * self.legend_textsize_factor})
 
             ## Histogramme et son texte ##
-            sns.histplot(ax=ax_hist, x=serie, hue=hue, log_scale=log_scale, bins=hist_bins, palette=palette)
+            sns.histplot(ax=ax_hist, x=serie, hue=hue, bins=hist_bins, palette=palette)
             ax_hist.set_title("Histogramme", fontdict=dict(size=text_frontsize*self.title_textsize_factor))
             ax_hist.set_ylabel("")
             ax_hist.tick_params(axis="both", labelsize=text_frontsize*self.ticks_textsize_factor) 
@@ -1220,3 +1218,4 @@ class stat_univariee(AbstractHtmlReprPourFigure):
             title.set(position=(title.get_position()[0]+1/8, 0.98))
         
         return
+        
