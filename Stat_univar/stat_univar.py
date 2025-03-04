@@ -577,7 +577,7 @@ class AbstractHtmlReprPourFigure(ABC):
         with open(file_name, 'w', encoding='utf-8') as file:
             file.write(self.text_html)  # Écrire le contenu HTML dans le fichier
     
-class stat_univariee(AbstractHtmlReprPourFigure):
+class StatUnivariee(AbstractHtmlReprPourFigure):
     
     def __init__(self, datafram, hue=None, hist_bins=30, figsize="auto", 
                  lorenz=True, lorenz_xticks=[], lorenz_yticks=[], text_frontsize=12, 
