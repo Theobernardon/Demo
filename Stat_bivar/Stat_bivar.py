@@ -138,7 +138,7 @@ def test_norm(echantillon, test: Literal["auto", "shapiro", "KS"]="auto", name_d
             return interpretation[0]
 
 #### outil d'editon html ####
-def _edit_table_html(self, axe_x, axe_y, table_np, totaux=True):
+def _edit_table_html(axe_x, axe_y, table_np, totaux=True):
     # Paramètres de style gérer par balise css
     html_text_style = """
     <div style="display:inline">
@@ -298,7 +298,10 @@ class BaseBivariateOutil:
             return col_tab
         elif type_col == "QualiNominal":
             col_tab = col.unique()
-            col_tab.sort_values()
+            try:
+                col_tab.sort_values(inplace=True)
+            except AttributeError:
+                col_tab.sort()
             return col_tab
     
     def _set_np_table(self):
@@ -560,23 +563,7 @@ class TestStatBivar(BaseBivariateOutil):
             consl.print("ATTENTION: nécessite au moins une variable Qualitative")
     
     #### Interprétation des tests ####
-    def _interpretation_cov(self, value, intencite=False):
-        interpretation = ""
-        x_name = self.x.name if len(self.x.name) < self.lim_affiche_text else self.x.name[:self.lim_affiche_text] + "..."
-        y_name = self.y.name if len(self.y.name) < self.lim_affiche_text else self.y.name[:self.lim_affiche_text] + "..."
-        if value < 0.0:
-            interpretation = f"'{x_name}' et '{y_name}' évoluent dans des [motclef]directions opposées[/]"
-            if intencite:
-                interpretation += " " + self._test_d_intencitée(value)
-        elif value > 0.0:
-            interpretation = f"'{x_name}' et '{y_name}' évoluent dans le [motclef]même sens[/]"
-            if intencite:
-                interpretation += " " + self._test_d_intencitée(value)
-        else:
-            interpretation = f"'{x_name}' et '{y_name}' évoluent [motclef]indépendament l'un de l'autre[/]"
-        return interpretation
-    
-    def _test_d_intencitée(value):
+    def _test_d_intencitee(self,value):
         value = abs(value)
         interpretation = ""
         if value > 0.9:
@@ -595,6 +582,22 @@ class TestStatBivar(BaseBivariateOutil):
             interpretation += "mais de façon [motclef]quasi-négligable[/]"
         return interpretation
     
+    def _interpretation_cov(self, value, intencite=False):
+        interpretation = ""
+        x_name = self.x.name if len(self.x.name) < self.lim_affiche_text else self.x.name[:self.lim_affiche_text] + "..."
+        y_name = self.y.name if len(self.y.name) < self.lim_affiche_text else self.y.name[:self.lim_affiche_text] + "..."
+        if value < 0.0:
+            interpretation = f"'{x_name}' et '{y_name}' évoluent dans des [motclef]directions opposées[/]"
+            if intencite:
+                interpretation += " " + self._test_d_intencitee(value)
+        elif value > 0.0:
+            interpretation = f"'{x_name}' et '{y_name}' évoluent dans le [motclef]même sens[/]"
+            if intencite:
+                interpretation += " " + self._test_d_intencitee(value)
+        else:
+            interpretation = f"'{x_name}' et '{y_name}' évoluent [motclef]indépendament l'un de l'autre[/]"
+        return interpretation
+    
     #### test de vérification des conditon de validité ####
     def test_para(self, echantillon, **kwars):
         # Pour savoir si l'on peut utiliser les méthodes paramétriques 
@@ -608,7 +611,7 @@ class TestStatBivar(BaseBivariateOutil):
         ### Test ###
         liste_de_serie = []
         for categ in quali.unique():
-            liste_de_serie.append(self.df.loc[self.df.groupby(by=f"{quali.name}").groups[categ], f"{Quanti.name}"])
+            liste_de_serie.append(self.df.loc[self.df.groupby(by=f"{quali.name}", observed=False).groups[categ], f"{Quanti.name}"])
         p = st.bartlett(*liste_de_serie).pvalue
         ### Interprétation ###
         interpretation = _interpretation_test(p, alpha, H0, H1)
@@ -680,7 +683,7 @@ class TestStatBivar(BaseBivariateOutil):
         ### Affichage des tables ###
         tb_initial = _edit_table_html(self.axe_x[:-1], self.axe_y[:-1], self.table_np[:-1,:-1], totaux=False)
         tb_attendue = _edit_table_html(self.axe_x[:-1], self.axe_y[:-1], ex, totaux=False)
-        juxtapose_html(contenue_html=[tb_initial, tb_attendue], 
+        juxtapose_html(contenues_html=[tb_initial, tb_attendue], 
                        names_contenues=["Table initial", "Table attendu"], 
                        importance_titre=4)
     
@@ -692,7 +695,7 @@ class TestStatBivar(BaseBivariateOutil):
         # Mise en liste des series par catégories puis passage dans la fontion
         liste_de_serie = []
         for categ in quali.unique():
-            liste_de_serie.append(self.df.loc[self.df.groupby(by=f"{quali.name}").groups[categ], f"{quanti.name}"])
+            liste_de_serie.append(self.df.loc[self.df.groupby(by=f"{quali.name}", observed=False).groups[categ], f"{quanti.name}"])
         stat_krus, p = st.kruskal(*liste_de_serie)
         # Texte d'introduction 
         H0 = f"[h]H0: les médianes des catégories de {quali_name} en fontion des {quanti_name} [/][motclef]sont égales[/]"
@@ -887,7 +890,7 @@ class TestStatBivar(BaseBivariateOutil):
         else:
             consl.print("[Erreur]Erreur:[\] mauvaise identification des variables")
     
-class StatBivar(BaseBivariateOutil):
+class StatBivarPlot(TestStatBivar, TableauContingence):
     
     def __inti__(self, 
                  data: Union[pd.DataFrame, TableauContingence], 
@@ -899,10 +902,328 @@ class StatBivar(BaseBivariateOutil):
                  nb_sep_QC = 10, nb_lim_QD = 10,
                  sep_round_x=0, sep_round_y=0):
         
-        BaseBivariateOutil.__init__(self, data, 
-                                    colonne_x, colonne_y, 
-                                    x_type, y_type, 
-                                    col_preformat_x, col_preformat_y, 
-                                    nb_sep_QC, nb_lim_QD, 
-                                    sep_round_x, sep_round_y)
+        if isinstance(data, pd.DataFrame):
+            # Si l'entrée est un DataFrame, il faut obligatoirement fournir les noms de séries
+            if colonne_x is None or colonne_y is None:
+                raise ValueError("Pour un DataFrame, colonne_x et colonne_y doivent être spécifiés.")
+            TestStatBivar.__init__(self, data, 
+                                colonne_x, colonne_y, 
+                                x_type, y_type, 
+                                col_preformat_x, col_preformat_y, 
+                                nb_sep_QC, nb_lim_QD, 
+                                sep_round_x, sep_round_y)
+            
+        elif isinstance(data, TableauContingence):
+            # Dans le cas d'un objet TableauContingence, on récupère directement les variables
+            TestStatBivar.__init__(self, data.df, 
+                                data.x.name, data.y.name, 
+                                data.x_type, data.y_type, 
+                                data.col_tab_x, data.col_tab_y, 
+                                data.nb_sep_QC, data.nb_lim_QD)
+        else:
+            raise TypeError("L'argument data doit être un DataFrame Pandas ou un TableauContingence.")
+    
+    #### Partie représentation graphique avec seaborn ####
+    # Représentations avancées sans ax renseignables
+    def relplot(self, **kwargs):
+        sns.relplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
+
+    def lmplot(self, **kwargs):
+        sns.lmplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
         
+    def catplot(self, **kwargs):
+        sns.catplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
+    
+    def jointplot(self, **kwargs):
+        sns.jointplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
+     
+    # Représentations élémentaires avec ax renseignables
+    def boxplot(self, ax=None, figsize=(5, 5), inverse=False, orient="v", **kwargs):
+        if 'Quali' in self.y_type :
+            categ = self.y.name
+            conti = self.x.name
+        elif 'Quali' in self.x_type :
+            categ = self.x.name
+            conti = self.y.name
+        else:
+            return 'Au moins une des catégories doit être qualitative'
+        if not ax:
+            fig, ax = plt.subplots(figsize=figsize)
+        
+        if inverse or orient=="h":
+            sns.boxplot(data=self.df.sort_values(categ), x=conti, y=categ, ax=ax, **kwargs) 
+        else:
+            sns.boxplot(data=self.df.sort_values(categ), x=categ, y=conti, ax=ax, **kwargs) 
+    
+    def violinplot(self, ax=None, figsize=(5, 5), **kwargs):
+        if not ax:
+            fig, ax = plt.subplots(figsize=figsize)
+        sns.violinplot(data=self.df, x=self.x.name, y=self.y.name, ax=ax, **kwargs)
+    
+    def scatterplot(self, ax=None, figsize=(5, 5), **kwargs):
+        if not ax:
+            fig, ax = plt.subplots(figsize=figsize)
+        sns.scatterplot(data=self.df, x=self.x.name, y=self.y.name, ax=ax, **kwargs)
+    
+    def lineplot(self, ax=None, figsize=(5, 5), **kwargs):
+        if not ax:
+            fig, ax = plt.subplots(figsize=figsize)
+        sns.lineplot(data=self.df, x=self.x.name, y=self.y.name, ax=ax, **kwargs)
+    
+    def heatmap(self, linewidths=.5, kind: Literal["ctg", "frec", "frec_h", "frec_v", "ctg_frec"]="ctg",
+                pct=True, ax=None, xticklabels='auto', yticklabels='auto', figsize=(5, 5), **kwargs):
+        if xticklabels == 'auto':
+            xticklabels=self.axe_y[1:-1]
+        if yticklabels == 'auto':
+            yticklabels=self.axe_x[:-1]
+        
+        if not ax:
+            fig, ax = plt.subplots(figsize=figsize)
+        if kind == "ctg":
+            sns.heatmap(data=self.table_np[:-1,:-1], linewidths=linewidths, xticklabels=xticklabels,
+                        yticklabels=yticklabels, ax=ax, **kwargs)
+            ax.set_xlabel(f'{self.y.name}')
+            ax.set_ylabel(f'{self.x.name}')
+        elif kind == "frec":
+            if pct:
+                table = self.table_freq[:-1,:-1] * 100
+            else:
+                table = self.table_freq[:-1,:-1]
+            sns.heatmap(data=table, linewidths=linewidths, xticklabels=xticklabels,
+                        yticklabels=yticklabels, ax=ax, **kwargs)
+            ax.set_xlabel(f'{self.y.name}')
+            ax.set_ylabel(f'{self.x.name}')
+        elif kind == "frec_h":
+            sns.heatmap(data=self.frequances_partiels(axe="h", html=False, pct=pct)[:-1,:-1], linewidths=linewidths, xticklabels=xticklabels,
+                        yticklabels=yticklabels, ax=ax, **kwargs)
+            ax.set_xlabel(f'{self.y.name}')
+            ax.set_ylabel(f'{self.x.name}')
+        elif kind == "frec_v":
+            sns.heatmap(data=self.frequances_partiels(axe="v", html=False, pct=pct)[:-1,:-1], linewidths=linewidths, xticklabels=xticklabels,
+                        yticklabels=yticklabels, ax=ax, **kwargs)
+            ax.set_xlabel(f'{self.y.name}')
+            ax.set_ylabel(f'{self.x.name}')
+        elif kind == "ctg_frec":
+            map_pct = self.table_freq[:-1,:-1] * 100
+            sns.heatmap(data=self.table_np[:-1,:-1], linewidths=linewidths, xticklabels=xticklabels,
+                        yticklabels=yticklabels, ax=ax, annot=map_pct, **kwargs)
+            ax.set_xlabel(f'{self.y.name}')
+            ax.set_ylabel(f'{self.x.name}')
+        else:
+            print("ATTENTION: Veuillez renseigner un kind valide")
+    
+    # Résumer graphique:
+    def annalyse_biv(self, apparies=None, cbar_hauteur=0.8, ctg_heat_kind: Literal["ctg", "frec", "ctg_frec"]="ctg",
+                     limite_char_label=10, lim_affiche_text=15, figure_droite: Literal["boxplot", 'boxplot_inv', "heatmap", "scatterplot"]= 'auto',
+                     kwargs_boxplot=dict(), kwargs_heatmap_ctg=dict(), kwargs_heatmap_par=dict(), kwargs_heatmap_quali=dict(),
+                     kwargs_scatterplot=dict(), kwargs_histplot=dict(), kwargs_countplot=dict()):
+        
+        self.lim_affiche_text = lim_affiche_text
+        
+        #### Création de la figure ####
+        ### Figure ###
+        fig = plt.figure(figsize=(22, 11))
+
+        ### Grille ###
+        global_grid_titre = gridspec.GridSpec(2, 1, figure = fig, height_ratios=(1, 14), hspace=0.15,)
+        
+        global_grid = global_grid_titre[1, 0].subgridspec(1, 2, width_ratios=(6, 5), wspace=0.16,)
+        grid_gauche = global_grid[0, 0].subgridspec(3, 1, hspace=0.25, height_ratios=(20, 40, 1))
+        grid_gauche_bas = grid_gauche[1, 0].subgridspec(1, 3, wspace=0.35, width_ratios=(1, 20, 30))
+        grid_gauche_bas_droite = grid_gauche_bas[0, 2].subgridspec(3, 1, hspace=0.15, height_ratios=(10, 90, 5))
+        grid_gauche_bas_gauche = grid_gauche_bas[0, 1].subgridspec(2, 1, hspace=0.3)
+        
+        if self.x_type != "QuantiContinu" and self.y_type != "QuantiContinu":
+            grid_droite = global_grid[0, 1].subgridspec(2, 1, hspace=0.15, height_ratios=(5, 1.3))
+            grid_droite_haut = grid_droite[0, 0].subgridspec(2, 2, wspace=0.03, hspace=0.03, width_ratios=(9, 1.5), height_ratios=(1.5, 9))
+        else:
+            grid_droite = global_grid[0, 1].subgridspec(2, 1, hspace=0.15, height_ratios=(5, 1))
+            grid_droite_haut = grid_droite[0, 0].subgridspec(2, 2, wspace=0, hspace=0, width_ratios=(9, 1.5), height_ratios=(1.5, 9))
+        ### Axes ###
+        # Atribution des diférents axes a leurs positions sur la grille comme dédrit ci-dessus
+        # Texte concernant les variables
+        ax_titre_var = fig.add_subplot(global_grid_titre[0, 0])
+        ax_titre_var.set_axis_off()
+        # Les heatmaps:
+        ax_heat_titre = fig.add_subplot(grid_gauche_bas_droite[0, 0])
+        ax_heat_titre.set_axis_off()
+        ## Contingence
+        ax_heat_contin = fig.add_subplot(grid_gauche_bas_droite[1, 0])
+        ax_heat_contin.set_title("Tableau de contingence")
+        ## Fréquances relatives horisontales
+        ax_heat_relh = fig.add_subplot(grid_gauche_bas_gauche[0, 0])
+        ax_heat_relh.set_title("Fréquences partielles sur effectifs\nmarginaux horizontaux")
+        ## Fréquances relatives verticales
+        ax_heat_relv = fig.add_subplot(grid_gauche_bas_gauche[1, 0])
+        ax_heat_relv.set_title("Fréquences partielles sur effectifs\nmarginaux verticaux")
+        # Scatter et hist
+        if (self.x_type != "QuantiContinu" and self.y_type != "QuantiContinu") or figure_droite == 'scatterplot':
+            ax_scatter = fig.add_subplot(grid_droite_haut[1, 0])
+            ax_hist_x = fig.add_subplot(grid_droite_haut[0, 0])
+            ax_hist_y = fig.add_subplot(grid_droite_haut[1, 1])
+        else:
+            ax_scatter = fig.add_subplot(grid_droite_haut[1, 0])
+            ax_hist_x = fig.add_subplot(grid_droite_haut[0, 0], sharex=ax_scatter)
+            ax_hist_y = fig.add_subplot(grid_droite_haut[1, 1], sharey=ax_scatter)
+        # Texte concernant les interactions des variables
+        ax_text_var_inter = fig.add_subplot(grid_droite[1, 0])
+        ax_text_var_inter.set_axis_off()
+        
+        ### Figures ###
+        # Figures fixes
+        ## Text descriptif des var ##
+        ax_titre_var.text(0.02, 0.5, f"Analyses bivariées de {self.x.name} et de {self.y.name}:", fontsize=20, ha='left', va='center')
+        inner_grid_text_var = grid_gauche[0, 0].subgridspec(1, 2, wspace=0.025, hspace=0.05)
+        resources=[]
+        if self.x_type[:5] == "Quant":
+            resources.append((self.x.name, self.x_type, st.describe(self.x), test_norm(self.x, rtn="txt", name_distrib=False), "x"))
+        else:
+            contenue = ""
+            if len(self.x.drop_duplicates()) > 5:
+                contenue += ", ".join(list(self.x.drop_duplicates().sample(5)))[:25] + "..."
+            else:
+                contenue += ", ".join(list(self.x.drop_duplicates()))
+            resources.append((self.x.name, self.x_type, self.x.describe(), contenue, "x"))
+        
+        if self.y_type[:5] == "Quant":
+            resources.append((self.y.name, self.y_type, st.describe(self.y), test_norm(self.y, rtn="txt", name_distrib=False), "y"))
+        else:
+            contenue = ""
+            if len(self.y.drop_duplicates()) > 5:
+                contenue += ", ".join(list(self.y.drop_duplicates().sample(5)))[:25] + "..."
+            else:
+                contenue += ", ".join(list(self.y.drop_duplicates()))
+            resources.append((self.y.name, self.y_type, self.y.describe(), contenue, "y"))
+        
+        for num_var in range(2):
+            inner_grid_text_var_temp = inner_grid_text_var[0, num_var].subgridspec(3, 1, wspace=0.025, hspace=0.025, height_ratios=(2, 1, 4))
+            ax_temp = fig.add_subplot(inner_grid_text_var[0, num_var])
+            
+            if resources[num_var][1][:5] == "Quant":
+                ax_temp_var = fig.add_subplot(inner_grid_text_var_temp[0, 0])
+                ax_temp_describe = fig.add_subplot(inner_grid_text_var_temp[1, 0])
+                ax_temp_test = fig.add_subplot(inner_grid_text_var_temp[2, 0])
+            else:
+                ax_temp_var = fig.add_subplot(inner_grid_text_var_temp[0, 0])
+                ax_temp_describe = fig.add_subplot(inner_grid_text_var_temp[1:, 0])
+                
+            fancybox = mpatches.FancyBboxPatch(
+                [0.05, 0.05], 0.9, 0.9,
+                boxstyle=mpatches.BoxStyle("Round", pad=0.02),
+                alpha=0.4
+                )
+            ax_temp.add_patch(fancybox)
+            ax_temp.set_axis_off()
+            
+            text_var = f"{resources[num_var][0] if len(resources[num_var][0])<lim_affiche_text else resources[num_var][0][:lim_affiche_text] +'...'} ({resources[num_var][4]}): {resources[num_var][1]}"
+            ax_temp_var.text(0.065, 0.5, text_var, fontsize=12, ha='left', va='center', in_layout=True)
+            ax_temp_var.set_axis_off()
+            
+            if resources[num_var][1][:5] == "Quant":
+                text_describe = "  |  ".join([f"Interval : [{resources[num_var][2][1][0]}, {resources[num_var][2][1][1]}]",
+                                            f"Moy= {format_numb(resources[num_var][2][2], 1)}"])
+                ax_temp_describe.text(0.065, 0.5, text_describe, fontsize=10, ha='left', va='center', in_layout=True)
+                ax_temp_describe.set_axis_off()
+                
+                text_test_brut = "".join(re.split(r"\[[a-z]*\]|\[/\]", resources[num_var][3][1]))
+                text_test= "\n".join([f"test de normalitée de {resources[num_var][3][0]}:",
+                                    f"{text_test_brut}"])
+                ax_temp_test.text(0.065, 0.5, text_test, fontsize=10, ha='left', va='center', in_layout=True)
+                ax_temp_test.set_axis_off()
+            else:
+                text_describe = "\n".join([f"Uniques : {format_numb(resources[num_var][2].iloc[1])}",
+                                           f"Plus présent : {resources[num_var][2].iloc[2]} ({format_numb((resources[num_var][2].iloc[3]/resources[num_var][2].iloc[0]*100),2)}%)",
+                                           f"Contenu : {resources[num_var][3]}"])
+                ax_temp_describe.text(0.065, 0.6, text_describe, fontsize=10, ha='left', va='center', in_layout=True)
+                ax_temp_describe.set_axis_off()
+
+        
+        ## Heatmapes ##
+        # Titre de zone
+        ax_heat_titre.text(0.05, 0.9, "Heatmaps:", fontsize=15, ha='left', va='center')
+        # Tableau de contingence
+        self.heatmap(kind=ctg_heat_kind, ax=ax_heat_contin, cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_ctg)
+        ax_heat_contin.set_ylabel("")
+        # Frec_h
+        self.heatmap(kind="frec_h", ax=ax_heat_relh, xticklabels=(), cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_par)
+        ax_heat_relh.set_xlabel("")
+        # Frec_v
+        self.heatmap(kind="frec_v", ax=ax_heat_relv, cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_par)
+        
+        # Figures relatives aux types de variables
+        ## Scatter et hist ##
+        if self.x_type == "QuantiContinu" and self.y_type == "QuantiContinu":
+            sns.histplot(x=self.x, ax=ax_hist_x, bins=15, **kwargs_histplot)
+            sns.histplot(y=self.y, ax=ax_hist_y, bins=15, **kwargs_histplot)
+        elif (self.x_type == "QuantiContinu" and self.y_type != "QuantiContinu") or figure_droite == 'boxplot':
+            sns.histplot(y=self.x, ax=ax_hist_y, bins=15, **kwargs_histplot)
+            sns.countplot(x=self.y, ax=ax_hist_x, **kwargs_countplot)
+        elif (self.x_type != "QuantiContinu" and self.y_type == "QuantiContinu") or figure_droite == 'boxplot_inv':
+            sns.countplot(y=self.x, ax=ax_hist_y, **kwargs_countplot)
+            sns.histplot(x=self.y, ax=ax_hist_x, bins=15, **kwargs_histplot)
+        elif self.x_type != "QuantiContinu" and self.y_type != "QuantiContinu":
+            sns.countplot(y=self.x, ax=ax_hist_y, hue=self.x, palette="crest", **kwargs_countplot)
+            sns.countplot(x=self.y, ax=ax_hist_x, hue=self.y, palette="crest", legend=False, **kwargs_countplot)
+        ax_hist_x.set_axis_off()
+        ax_hist_y.set_axis_off()
+        
+        pad = 25
+        if (self.x_type == "QuantiContinu" and self.y_type == "QuantiContinu") or figure_droite == 'scatterplot':
+            self.scatterplot(ax=ax_scatter, **kwargs_scatterplot)
+            ax_hist_x.set_title("Nuage de points et distributions respectives", pad=pad)
+        elif figure_droite == 'boxplot':
+            self.boxplot(ax=ax_scatter, **kwargs_boxplot)
+            ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
+        elif figure_droite == 'boxplot_inv':
+            self.boxplot(ax=ax_scatter, inverse=True, **kwargs_boxplot)
+            ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
+        elif figure_droite == 'heatmap':
+            self.heatmap(kind="frec", pct=True, ax=ax_scatter, annot=True, cbar=False,
+                         cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), linewidths=2, **kwargs_heatmap_quali)
+            ax_hist_x.set_title("Heatmap des effectifs croisés (%)", pad=pad)
+        elif (self.x_type == "QuantiContinu" and self.y_type != "QuantiContinu"):
+            self.boxplot(ax=ax_scatter, **kwargs_boxplot)
+            ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
+        elif (self.x_type != "QuantiContinu" and self.y_type == "QuantiContinu"):
+            self.boxplot(ax=ax_scatter, inverse=True, **kwargs_boxplot)
+            ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
+        elif (self.x_type != "QuantiContinu" and self.y_type != "QuantiContinu"):
+            self.heatmap(kind="frec", pct=True, ax=ax_scatter, annot=True, cbar=False,
+                         cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), linewidths=2, **kwargs_heatmap_quali)
+            ax_hist_x.set_title("Heatmap des effectifs croisés (%)", pad=pad)
+        
+        
+        ## Corrélations ##
+        ax_text_var_inter
+        fancybox = mpatches.FancyBboxPatch(
+            [0.03, 0.07], 0.85, 0.9,
+            boxstyle=mpatches.BoxStyle("Round", pad=0.02),
+            alpha=0.4
+            )
+        ax_text_var_inter.add_patch(fancybox)
+        if apparies is None:
+            corr_test = "ATTENTION: renseigner si les variables sont appariées"
+        else:
+            corr_test = self.analyse_bivar_et_test(apparies=apparies, rtn_txt=True)
+        corr_test_name = " ".join(corr_test[0].split("_"))
+        try:
+            corr_test_inter = "".join(re.split(r"\[[a-z]*\]|\[/\]", corr_test[1][1]))
+            corr_test_inter = re.split('\n', corr_test_inter)
+            corr_test_inter = corr_test_inter[:-1] + [corr_test_inter[-1][:int(len(corr_test_inter[-1])/2)] + '-\n    -' + corr_test_inter[-1][int(len(corr_test_inter[-1])/2):],]
+            corr_test_inter = '\n'.join(corr_test_inter)
+            text_describe = "\n".join([
+                                   f"Stat= {format_numb(corr_test[1][0], 4)}",
+                                   f"{corr_test_inter}"])
+        except IndexError:
+            text_describe = corr_test
+        ax_text_var_inter.text(0.05, 0.9, f"{corr_test_name}:", fontsize=12, ha='left', va='top', in_layout=True)
+        ax_text_var_inter.text(0.40, 0.9, text_describe, fontsize=10, ha='left', va='top', in_layout=True)
+        
+        # gestion des labeles d'echelles trop long
+        for ax in fig.get_axes():
+            y_ticklabels = ax.get_yticklabels()
+            labels = [txt.get_text() if len(txt.get_text()) < limite_char_label else txt.get_text()[:limite_char_label-3] + "..." for txt in y_ticklabels]
+            ax.set_yticks(ax.get_yticks())
+            ax.set_yticklabels(labels)
+        
+        plt.show()
