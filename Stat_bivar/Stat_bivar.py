@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 import re
 import inspect
+import warnings
 import pandas as pd
 import matplotlib.patches as mpatches
 import pandas.api.types as ptypes
@@ -17,18 +18,17 @@ from rich.console import Console
 from rich.theme import Theme
 
 consl = Console(
-    theme=Theme({
-    "test": "#FBCE9E",
-    "var": "#00BDC8 bold",
-    "pval": "#00BDC8 bold",
-    "h": "#7ACFB0",
-    "chemin": "#F88F52 bold",
-    "motclef": "#7ACFB0 underline",
-    "choix": "#7ACFB0 underline bold",
-    "espace": "#1C5588 bold",
-    "Erreur": "#e01616 bold"
-    }, inherit=False), width=70)
-
+        theme=Theme({
+        "test": "#FBCE9E",
+        "var": "#00BDC8 bold",
+        "pval": "#00BDC8 bold",
+        "h": "#7ACFB0",
+        "chemin": "#F88F52 bold",
+        "motclef": "#7ACFB0 underline",
+        "choix": "#7ACFB0 underline bold",
+        "espace": "#1C5588 bold"
+        }, inherit=False), width=70)
+    
 #### Partie de visualisation ####
 def Edite_fig_or_axe(function):
     # Obtenir la signature de la fonction
@@ -461,7 +461,9 @@ class TableauContingence(BaseBivariateOutil):
         frequances_partiels_h = None
         frequances_partiels_v = None
         if "h" in axe:
-            frequances_partiels_h = np.divide(self.table_np, self.table_np[:, -1].reshape(self.table_np.shape[0], 1)).round(4)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.simplefilter("always", category=RuntimeWarning) 
+                frequances_partiels_h = np.divide(self.table_np, self.table_np[:, -1].reshape(self.table_np.shape[0], 1)).round(4)
             if pct: frequances_partiels_h = (frequances_partiels_h*100).round(2)
         if "v" in axe:  
             frequances_partiels_v = np.divide(self.table_np, self.table_np[-1,:]).round(4)
@@ -925,20 +927,20 @@ class StatBivarPlot(TestStatBivar, TableauContingence):
     
     #### Partie représentation graphique avec seaborn ####
     # Représentations avancées sans ax renseignables
-    def relplot(self, **kwargs):
+    def plot_rel(self, **kwargs):
         sns.relplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
 
-    def lmplot(self, **kwargs):
+    def plot_lm(self, **kwargs):
         sns.lmplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
         
-    def catplot(self, **kwargs):
+    def plot_cat(self, **kwargs):
         sns.catplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
     
-    def jointplot(self, **kwargs):
+    def plot_joint(self, **kwargs):
         sns.jointplot(data=self.df, x=self.x.name, y=self.y.name, **kwargs)
      
     # Représentations élémentaires avec ax renseignables
-    def boxplot(self, ax=None, figsize=(5, 5), inverse=False, orient="v", **kwargs):
+    def plot_box(self, ax=None, figsize=(5, 5), inverse=False, orient="v", **kwargs):
         if 'Quali' in self.y_type :
             categ = self.y.name
             conti = self.x.name
@@ -955,22 +957,22 @@ class StatBivarPlot(TestStatBivar, TableauContingence):
         else:
             sns.boxplot(data=self.df.sort_values(categ), x=categ, y=conti, ax=ax, **kwargs) 
     
-    def violinplot(self, ax=None, figsize=(5, 5), **kwargs):
+    def plot_violin(self, ax=None, figsize=(5, 5), **kwargs):
         if not ax:
             fig, ax = plt.subplots(figsize=figsize)
         sns.violinplot(data=self.df, x=self.x.name, y=self.y.name, ax=ax, **kwargs)
     
-    def scatterplot(self, ax=None, figsize=(5, 5), **kwargs):
+    def plot_scatter(self, ax=None, figsize=(5, 5), **kwargs):
         if not ax:
             fig, ax = plt.subplots(figsize=figsize)
         sns.scatterplot(data=self.df, x=self.x.name, y=self.y.name, ax=ax, **kwargs)
     
-    def lineplot(self, ax=None, figsize=(5, 5), **kwargs):
+    def plot_line(self, ax=None, figsize=(5, 5), **kwargs):
         if not ax:
             fig, ax = plt.subplots(figsize=figsize)
         sns.lineplot(data=self.df, x=self.x.name, y=self.y.name, ax=ax, **kwargs)
     
-    def heatmap(self, linewidths=.5, kind: Literal["ctg", "frec", "frec_h", "frec_v", "ctg_frec"]="ctg",
+    def plot_heatmap(self, linewidths=.5, kind: Literal["ctg", "frec", "frec_h", "frec_v", "ctg_frec"]="ctg",
                 pct=True, ax=None, xticklabels='auto', yticklabels='auto', figsize=(5, 5), **kwargs):
         if xticklabels == 'auto':
             xticklabels=self.axe_y[1:-1]
@@ -1013,7 +1015,7 @@ class StatBivarPlot(TestStatBivar, TableauContingence):
             print("ATTENTION: Veuillez renseigner un kind valide")
     
     # Résumer graphique:
-    def annalyse_biv(self, apparies=None, cbar_hauteur=0.8, ctg_heat_kind: Literal["ctg", "frec", "ctg_frec"]="ctg",
+    def plot_annalyse_biv(self, apparies=None, cbar_hauteur=0.8, ctg_heat_kind: Literal["ctg", "frec", "ctg_frec"]="ctg",
                      limite_char_label=10, lim_affiche_text=15, figure_droite: Literal["boxplot", 'boxplot_inv', "heatmap", "scatterplot"]= 'auto',
                      kwargs_boxplot=dict(), kwargs_heatmap_ctg=dict(), kwargs_heatmap_par=dict(), kwargs_heatmap_quali=dict(),
                      kwargs_scatterplot=dict(), kwargs_histplot=dict(), kwargs_countplot=dict()):
@@ -1142,13 +1144,13 @@ class StatBivarPlot(TestStatBivar, TableauContingence):
         # Titre de zone
         ax_heat_titre.text(0.05, 0.9, "Heatmaps:", fontsize=15, ha='left', va='center')
         # Tableau de contingence
-        self.heatmap(kind=ctg_heat_kind, ax=ax_heat_contin, cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_ctg)
+        self.plot_heatmap(kind=ctg_heat_kind, ax=ax_heat_contin, cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_ctg)
         ax_heat_contin.set_ylabel("")
         # Frec_h
-        self.heatmap(kind="frec_h", ax=ax_heat_relh, xticklabels=(), cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_par)
+        self.plot_heatmap(kind="frec_h", ax=ax_heat_relh, xticklabels=(), cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_par)
         ax_heat_relh.set_xlabel("")
         # Frec_v
-        self.heatmap(kind="frec_v", ax=ax_heat_relv, cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_par)
+        self.plot_heatmap(kind="frec_v", ax=ax_heat_relv, cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), cbar_kws=dict(shrink=cbar_hauteur), square=True, **kwargs_heatmap_par)
         
         # Figures relatives aux types de variables
         ## Scatter et hist ##
@@ -1169,26 +1171,26 @@ class StatBivarPlot(TestStatBivar, TableauContingence):
         
         pad = 25
         if (self.x_type == "QuantiContinu" and self.y_type == "QuantiContinu") or figure_droite == 'scatterplot':
-            self.scatterplot(ax=ax_scatter, **kwargs_scatterplot)
+            self.plot_scatter(ax=ax_scatter, **kwargs_scatterplot)
             ax_hist_x.set_title("Nuage de points et distributions respectives", pad=pad)
         elif figure_droite == 'boxplot':
-            self.boxplot(ax=ax_scatter, **kwargs_boxplot)
+            self.plot_box(ax=ax_scatter, **kwargs_boxplot)
             ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
         elif figure_droite == 'boxplot_inv':
-            self.boxplot(ax=ax_scatter, inverse=True, **kwargs_boxplot)
+            self.plot_box(ax=ax_scatter, inverse=True, **kwargs_boxplot)
             ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
         elif figure_droite == 'heatmap':
-            self.heatmap(kind="frec", pct=True, ax=ax_scatter, annot=True, cbar=False,
+            self.plot_heatmap(kind="frec", pct=True, ax=ax_scatter, annot=True, cbar=False,
                          cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), linewidths=2, **kwargs_heatmap_quali)
             ax_hist_x.set_title("Heatmap des effectifs croisés (%)", pad=pad)
         elif (self.x_type == "QuantiContinu" and self.y_type != "QuantiContinu"):
-            self.boxplot(ax=ax_scatter, **kwargs_boxplot)
+            self.plot_box(ax=ax_scatter, **kwargs_boxplot)
             ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
         elif (self.x_type != "QuantiContinu" and self.y_type == "QuantiContinu"):
-            self.boxplot(ax=ax_scatter, inverse=True, **kwargs_boxplot)
+            self.plot_box(ax=ax_scatter, inverse=True, **kwargs_boxplot)
             ax_hist_x.set_title("Boîtes à moustaches de chaques catégories", pad=pad)
         elif (self.x_type != "QuantiContinu" and self.y_type != "QuantiContinu"):
-            self.heatmap(kind="frec", pct=True, ax=ax_scatter, annot=True, cbar=False,
+            self.plot_heatmap(kind="frec", pct=True, ax=ax_scatter, annot=True, cbar=False,
                          cmap=sns.color_palette("ch:s=.25,rot=-.25", as_cmap=True), linewidths=2, **kwargs_heatmap_quali)
             ax_hist_x.set_title("Heatmap des effectifs croisés (%)", pad=pad)
         
