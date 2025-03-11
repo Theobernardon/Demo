@@ -601,10 +601,17 @@ class TestStatBivar(BaseBivariateOutil):
         return interpretation
     
     #### test de vérification des conditon de validité ####
-    def test_para(self, echantillon, **kwars):
+    def test_para(self, echantillon: Union[Literal['x', 'y'], pd.Series], **kwars):
         # Pour savoir si l'on peut utiliser les méthodes paramétriques 
         # on fait un test de normalité
-        return test_norm(echantillon, **kwars)
+        if echantillon == "x":
+            return test_norm(self.x, **kwars)
+        elif echantillon == "y":
+            return test_norm(self.y, **kwars)
+        elif isinstance(echantillon, pd.Series):
+            return test_norm(echantillon, **kwars)
+        else:
+            print("ATTENTION:\nechantillon doit être 'x' ou 'y' ou une série pandas")
     
     def test_egalite_variances(self, alpha=0.01):
         quali, Quanti = self._quali_Quanti()
@@ -735,7 +742,7 @@ class TestStatBivar(BaseBivariateOutil):
         if variablex_type == "Quanti" and variabley_type == "Quanti":
             trace_des_choix += "[chemin]2 Quanti[/] --> "
             # Test si les variables sont paramétriques
-            if self.test_para(self.x, rtn=rtn) and self.test_para(self.y, rtn=rtn):
+            if self.test_para('x', rtn=rtn) and self.test_para('y', rtn=rtn):
                 if rtn_txt:
                     return "correlation_pearson", self.correlation_pearson(data_forme=True)
                 trace_des_choix += "[chemin]2 paramétriques[/]:"

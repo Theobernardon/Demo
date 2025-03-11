@@ -2,6 +2,9 @@ import unittest
 import pandas as pd
 from Stat_bivar.Stat_bivar import StatBivarPlot
 
+# Démonstration d'un test unitaire possible pour la methode plot_annalyse_biv de la classe StatBivarPlot
+# Ici seuls quelques possibilités sont représentées et donc les tests ne sont absolument pas 
+# exhaustifs mais bien une simple démonstration
 class TestStatBivarPlot(unittest.TestCase):
 
     def setUp(self):
@@ -15,19 +18,19 @@ class TestStatBivarPlot(unittest.TestCase):
 
     def test_annalyse_biv_default(self):
         # Test with default parameters
-        self.stat_bivar_plot.annalyse_biv()
+        self.stat_bivar_plot.plot_annalyse_biv()
 
     def test_annalyse_biv_boxplot(self):
         # Test with figure_droite set to 'boxplot'
-        self.stat_bivar_plot.annalyse_biv(figure_droite='boxplot')
+        self.stat_bivar_plot.plot_annalyse_biv(figure_droite='boxplot')
 
     def test_annalyse_biv_heatmap(self):
         # Test with figure_droite set to 'heatmap'
-        self.stat_bivar_plot.annalyse_biv(figure_droite='heatmap')
+        self.stat_bivar_plot.plot_annalyse_biv(figure_droite='heatmap')
 
     def test_annalyse_biv_scatterplot(self):
         # Test with figure_droite set to 'scatterplot'
-        self.stat_bivar_plot.annalyse_biv(figure_droite='scatterplot')
+        self.stat_bivar_plot.plot_annalyse_biv(figure_droite='scatterplot')
 
 if __name__ == '__main__':
     unittest.main()
