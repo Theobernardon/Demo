@@ -124,10 +124,6 @@ Une fois les données importées, j’ai pu tester quelques fonctionnalités de 
 ![Exemple de Dashboard](/ressourcestuto/dashboardtest.png)
 
 ##  Installation de grafana
-### Mise en place du docker
-
-```cmd
-docker run -d --name=grafana -p 3000:3000 grafana/grafana 
-```
+A suivre ....
 
 
