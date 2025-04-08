@@ -41,10 +41,3 @@ influx user create --org testinfluxdb2entreprise --name readuser --password read
 - Vérifiez que votre token API a les permissions suffisantes pour créer des utilisateurs.
 - Si vous utilisez InfluxDB v1, la méthode de création d'utilisateurs est différente et utilise des commandes InfluxQL comme `CREATE USER`.
 
-Si vous avez besoin de créer une organisation, vous pouvez utiliser :
-
-```
-influx org create --name "testinfluxdb2entreprise"
-```
-
-[Create an organization using the influx CLI](https://docs.influxdata.com/influxdb/v2/admin/organizations/create-org/#create-an-organization-using-the-influx-cli)

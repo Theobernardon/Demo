@@ -1,30 +1,64 @@
-# Démo InfluxDB avec ECharts & Grafana ⚡
+# ⚡ Démonstration InfluxDB + ECharts + Grafana pour l'Analyse Énergétique
 
-Ce projet est une démonstration de l'utilisation d'**InfluxDB** avec **ECharts** et **Grafana** pour l'analyse énergétique sur des séries temporelles.
+Ce projet est une démonstration complète de la visualisation de données énergétiques à l’aide de **InfluxDB**, **Grafana**, et **ECharts**. Il repose sur un jeu de données réel concernant la consommation d'énergie domestique et les conditions météorologiques associées.
 
-## Installation d’InfluxDB 2
+---
 
-### Mise en place du conteneur Docker
+## 📦 Données utilisées
 
-Dans le terminal Docker, exécutez la commande suivante :
+> **Source Kaggle :**  
+> [Appliances Energy Prediction Dataset](https://www.kaggle.com/datasets/loveall/appliances-energy-prediction)
 
-```cmd
-docker run -p 8086:8086 --name "influxdbdocker" -v "C:\Users\berna\Documents\Programation\Demo\Data_viz_timed\data:/var/lib/influxdb2" -v "C:\Users\berna\Documents\Programation\Demo\Data_viz_timed\config:/etc/influxdb2" influxdb:2
+Le jeu de données couvre 4,5 mois de mesures prises toutes les 10 minutes dans une maison, ainsi que des données météorologiques issues de la station de l’aéroport de **Chièvres**, Belgique.
+
+### 📊 Variables principales :
+
+| Variable        | Description |
+|-----------------|-------------|
+| `Appliances`    | Consommation des appareils électroménagers (Wh) |
+| `lights`        | Consommation des lumières (Wh) |
+| `T1` à `T9`     | Températures dans différentes pièces (°C) |
+| `RH_1` à `RH_9` | Humidité relative (%) |
+| `To`            | Température extérieure (station météo) |
+| `Pression`      | Pression atmosphérique (mm Hg) |
+| `RH_out`        | Humidité extérieure (%) |
+| `Windspeed`     | Vitesse du vent (m/s) |
+| `Visibility`    | Visibilité (km) |
+| `Tdewpoint`     | Point de rosée (°C) |
+| `rv1`, `rv2`    | Variables aléatoires (adimensionnelles) |
+
+---
+
+## 📥 Installation d’InfluxDB 2
+
+### 🐳 Déploiement d'un Docker
+Dans un terminal Docker :
+
+```bash
+docker run -p 8086:8086 --name "influxdbdocker" \
+-v "C:\path\to\data:/var/lib/influxdb2" \
+-v "C:\path\to\config:/etc/influxdb2" influxdb:2
 ```
 
-Cette commande crée un nouveau conteneur Docker avec InfluxDB 2. Dans cet exemple, les dossiers **`data`** et **`config`** du répertoire de travail sont utilisés pour garantir la persistance des données, même en cas de suppression ou de redémarrage du conteneur.  
-Le port **8086** est également ouvert à la fois sur l’hôte et le conteneur pour permettre l’accès à l’interface web.
+- Persistance des données via volumes `data` et `config`.
+- Port `8086` exposé pour l’accès à l’interface web.
 
-### Clé en lecture seule disponible
+Accès à l’interface web via : [http://localhost:8086](http://localhost:8086)
 
-Si vous souhaitez télécharger le dépôt et tester le travail présenté dans cette démonstration :
+### 🔐 Clé de lecture publique (démo)
 
-> **Nom d’utilisateur** : `readuser`  
-> **Mot de passe** : `readuserpwd`
+Pour tester sans tout reconfigurer :
+
+- **Utilisateur :** `readuser`  
+- **Mot de passe :** `readuserpwd`
+
+> Pour un usage production, il est recommandé de configurer les **tokens** / user dans `Load Data > API Tokens`.
+
+---
 
 ### Initialisation de la base de données
 
-Pour ce tutoriel, nous utiliserons l’interface utilisateur disponible à l’adresse [http://localhost:8086](http://localhost:8086).
+Pour ce tutoriel, J'ai utilisé l’interface utilisateur disponible à l’adresse [http://localhost:8086](http://localhost:8086).
 
 Il est aussi possible de tout configurer via le CLI installé dans le conteneur Docker :
 
@@ -37,27 +71,19 @@ docker exec influxdb2 influx setup \
   --force
 ```
 
-#### Gestion de la sécurité et des tokens
+## 🛠️ Importation des données avec Python
 
-> Pour ce tutoriel, la sécurité et les droits d’accès ne seront pas abordés.
+### 📦 Préparation
 
-Cependant, pour un déploiement en production, il est fortement recommandé de gérer les droits d'accès et la sécurité via les tokens.  
-Cela se configure dans l’onglet `Load Data` > `API Tokens` de l’interface.  
-Le gestionnaire de tokens permet de personnaliser les permissions (lecture/écriture) par utilisateur ou cas d’usage.
+On utilise `pandas`, `tqdm`, et le client officiel InfluxDB :
 
-### Importation des fichiers CSV
+```bash
+pip install influxdb-client pandas tqdm
+```
 
-L’importation directe de fichiers CSV (au format annoté), bien que supportée dans certaines versions, n’est pas compatible avec la configuration utilisée pour ce tutoriel.
+### 🐍 Exemple de script
 
-#### Outil CSV → CSV annoté
-
-Ma première piste consistait à annoter automatiquement un fichier CSV classique.  
-J’avais entamé la rédaction d’un script (`csvannotator.py`) permettant cette transformation, mais je ne l’ai ni finalisé ni testé en raison de problèmes d’environnement.  
-Je le laisse néanmoins à disposition pour référence.
-
-#### Méthode retenue pour l'importation des données
-
-Finalement, j’ai opté pour l’utilisation de l’interface CLI du package Python `influxdb_client` :
+Le script suivant a permis d'importer le CSV dans la base de données influxdb
 
 ```python
 # Importation des modules nécessaires
@@ -67,9 +93,8 @@ from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 ```
 
-##### Connexion au client InfluxDB
-
 ```python
+# Connexion au client InfluxDB
 token = "TOKEN_PRIVÉ"
 org = "testinfluxdb2entreprise"
 url = "http://localhost:8086"
@@ -81,21 +106,17 @@ query_api = client.query_api()
 write_api = client.write_api(write_options=SYNCHRONOUS)
 ```
 
-##### Préparation des données avec Pandas
-
 ```python
+# Préparation des données avec Pandas
 df = pd.read_csv(csvfile, sep=",", decimal=".")
 df['date'] = pd.to_datetime(df['date'])
 ```
-
-##### Enregistrement ligne par ligne dans InfluxDB
-
 Une boucle `for` est utilisée pour parcourir les lignes du DataFrame et écrire chaque point dans InfluxDB selon le modèle de base souhaité.  
 Les mesures, champs et tags sont définis librement. Une date est associée à chaque point.
 
 J’ai utilisé `tqdm` pour afficher une barre de progression, car l’opération était assez longue (environ 1h30 sur mon ordinateur).
-
 ```python
+# Enregistrement ligne par ligne dans InfluxDB
 for id, raw in tqdm(df.iterrows(), desc="Writing data to InfluxDB", total=len(df)):
     point_coso = (
         Point("Consommation")
@@ -117,13 +138,32 @@ for id, raw in tqdm(df.iterrows(), desc="Writing data to InfluxDB", total=len(df
 client.close()
 ```
 
-### Test de Dashboard
+> Le script `csvannotator.py` (incomplet) et le jupyter `test.ipynb` sont laissés pour référence si vous souhaitez générer des fichiers au format CSV annoté. (Je n'ai pas pu tester sur influxdb 2)
 
-Une fois les données importées, j’ai pu tester quelques fonctionnalités de la plateforme, notamment la création de dashboards :
+## 📊 Visualisation avec InfluxDB UI
 
-![Exemple de Dashboard](/ressourcestuto/dashboardtest.png)
+Une fois les données importées, on peut créer des dashboards directement depuis l’interface web InfluxDB.
 
-##  Installation de grafana
-A suivre ....
+![Exemple de dashboard](/ressourcestuto/dashboardtest.png)
 
+---
 
+## 📈 Intégration de Grafana (à venir)
+
+### ⚙️ Installation avec Docker
+
+```bash
+docker run -d --name=grafana -p 3000:3000 grafana/grafana
+```
+
+- Accès à Grafana via : [http://localhost:3000](http://localhost:3000)
+- Ajouter **InfluxDB** comme source de données.
+- Créer des visualisations dynamiques à partir des séries importées.
+
+---
+
+## 🌐 Intégration avec ECharts (à venir)
+
+La prochaine étape consistera à intégrer **Apache ECharts** pour visualiser certaines séries temporelles dans une interface web personnalisée.
+
+---
