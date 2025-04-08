@@ -144,7 +144,7 @@ client.close()
 
 Une fois les données importées, on peut créer des dashboards directement depuis l’interface web InfluxDB.
 
-![Exemple de dashboard](Data_viz_timed/ressourcestuto/dashboardtest.png)
+![Exemple de dashboard](ressourcestuto/dashboardtest.png)
 
 ---
 
