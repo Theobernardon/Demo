@@ -12,9 +12,9 @@ L'objectif de ce dossier est de fournir une plateforme pour partager mes connais
 
 Vous trouverez dans ce dossier une variété de démonstrations de code, notamment :
 
-* Des exemples de code pour différents langages de programmation
-* Des démonstrations de fonctionnalités spécifiques
-* Des exemples de projets que j'ai développés
+- Des exemples de code pour différents langages de programmation
+- Des démonstrations de fonctionnalités spécifiques
+- Des exemples de projets que j'ai développés
 
 ## Navigation
 
