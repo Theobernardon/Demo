@@ -24,7 +24,7 @@ Vous pouvez naviguer dans ce dossier pour trouver les démonstrations qui vous i
 
 Si vous avez des questions ou des commentaires sur les démonstrations de code, n'hésitez pas à me contacter. Je serai ravi de discuter avec vous.
 
-[CV](CVbernardontheoml.pdf)  
+[CV](CV.pdf)  
 [linkedin](https://www.linkedin.com/in/theobernardon)
 
 Merci de visiter le dossier démo !
